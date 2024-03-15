@@ -8,8 +8,8 @@ For this purpose we provide the PowerShell script, which uninstalls all devices 
 1. Start Device Manager with the JoyWarrior56FR1 connected
 2. In the list, navigate to the "Human Interface Devices" section. A JoyWarrior56FR1 will have 5 entries that need to be removed:
    - 1x HID-compliant game controller
-   - 2x HID-compliant devices
-   - 2x USB input device
+   - 3x HID-compliant devices
+   - 1x USB input device
 3. Select an entry from the list (double-click) and go to the "Details" tab. Under Properties, choose "Device Instance Path" and check if the value contains the following entry: ***VID_07C0&PID_111A***
 4. Once you have identified an entry, go to the "Driver" tab and uninstall the device
 5. Repeat steps 3 and 4 until no device with VID_07C0&PID_111A is left
