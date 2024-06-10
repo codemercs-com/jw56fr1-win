@@ -153,9 +153,9 @@ void CzerooffsetDlg::MMTimerHandler(UINT nIDEvent)
 	//Get Offset
 	if (m_bOffset == TRUE)
 	{
-		m_OffsetData.accX = (m_OffsetData.accX + data.accX - JW56FR1_ZERO) / 2;
-		m_OffsetData.accY = (m_OffsetData.accY + data.accY - JW56FR1_ZERO) / 2;
-		m_OffsetData.accZ = (m_OffsetData.accZ + (data.accZ - JW56FR1_ZERO + JW56FR1_2G)) / 2;
+		m_OffsetData.accX = (m_OffsetData.accX + data.accX) / 2;
+		m_OffsetData.accY = (m_OffsetData.accY + data.accY) / 2;
+		m_OffsetData.accZ = (m_OffsetData.accZ + data.accZ) / 2;
 
 
 		if (m_OffsetCount % 10 == 0)
@@ -166,6 +166,11 @@ void CzerooffsetDlg::MMTimerHandler(UINT nIDEvent)
 		//Take 100 values for get offset
 		if (m_OffsetCount > 100)
 		{
+			m_OffsetData.accX = m_OffsetData.accX - JW56FR1_ZERO;
+			m_OffsetData.accY = m_OffsetData.accY - JW56FR1_ZERO;
+			m_OffsetData.accZ = m_OffsetData.accZ - JW56FR1_ZERO + JW56FR1_2G;
+
+
 			m_ListMsg.ResetContent();
 			m_ListMsg.AddString(L"---Offset---");
 			text.Format(L"X: %d", m_OffsetData.accX);
@@ -189,7 +194,7 @@ void CzerooffsetDlg::MMTimerHandler(UINT nIDEvent)
 		text.Format(L"%d", data.accY - JW56FR1_ZERO);
 		m_StaticY1.SetWindowTextW(text);
 
-		text.Format(L"%d", data.accZ - JW56FR1_ZERO + JW56FR1_2G);
+		text.Format(L"%d", data.accZ - JW56FR1_ZERO);
 		m_StaticZ1.SetWindowTextW(text);
 
 		//Output data with offset
@@ -199,7 +204,7 @@ void CzerooffsetDlg::MMTimerHandler(UINT nIDEvent)
 		text.Format(L"%d", data.accY - JW56FR1_ZERO - m_OffsetData.accY);
 		m_StaticY2.SetWindowTextW(text);
 
-		text.Format(L"%d", data.accZ - JW56FR1_ZERO + JW56FR1_2G - m_OffsetData.accZ);
+		text.Format(L"%d", data.accZ - JW56FR1_ZERO - m_OffsetData.accZ);
 		m_StaticZ2.SetWindowTextW(text);
 	}
 }
