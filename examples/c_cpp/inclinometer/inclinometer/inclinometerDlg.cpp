@@ -157,10 +157,14 @@ void CinclinometerDlg::OnBnClickedButtonStart()
 		for (int i = 0; i < 255; i++)
 		{
 			data = m_Joywarrior.GetData();
-			m_OffsetData.accX = (m_OffsetData.accX + data.accX) / 2;
-			m_OffsetData.accY = (m_OffsetData.accY + data.accY) / 2;
-			m_OffsetData.accZ = (m_OffsetData.accZ + data.accZ) / 2;
+			m_OffsetData.accX = m_OffsetData.accX + data.accX;
+			m_OffsetData.accY = m_OffsetData.accY + data.accY;
+			m_OffsetData.accZ = m_OffsetData.accZ + data.accZ;
 		}
+
+		m_OffsetData.accX /= 255;
+		m_OffsetData.accY /= 255;
+		m_OffsetData.accZ /= 255;
 
 		m_OffsetData.accX = m_OffsetData.accX - JW56FR1_ZERO;
 		m_OffsetData.accY = m_OffsetData.accY - JW56FR1_ZERO;
