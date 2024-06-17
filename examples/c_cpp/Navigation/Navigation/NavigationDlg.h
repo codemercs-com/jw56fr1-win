@@ -35,12 +35,20 @@ public:
 	afx_msg void OnBnClickedButtonConnect();
 	afx_msg void OnBnClickedButtonRun();
 	afx_msg void OnBnClickedButtonReset();
-	CStatic m_AccX;
-	CStatic m_AccY;
-	CStatic m_AccZ;
-	CStatic m_SpeedX;
-	CStatic m_SpeedY;
-	CStatic m_SpeedZ;
+
+	struct StaticGroup
+	{
+		CStatic x;
+		CStatic y;
+		CStatic z;
+	};
+
+
+	StaticGroup m_StaticRawAcc;
+	StaticGroup m_StaticAcceleration;
+	StaticGroup m_StaticComp; 
+	StaticGroup m_StaticSpeed;
+	StaticGroup m_StaticTravel;
 
 	CJoyWarrior56FR1 m_Joywarrior;
 	afx_msg void OnClose();
@@ -71,14 +79,10 @@ public:
 		int z;
 	} SensorDataZero;
 
-	SensorDataZero m_Init;
+	SensorDataZero m_Offset;
 	SpeedStruct m_Acceleration;
-	SpeedStruct m_Way;
+	SpeedStruct m_Speed;
+	SpeedStruct m_Travel;
 	afx_msg void OnBnClickedButtonInit();
-	CStatic m_CompX;
-	CStatic m_CompY;
-	CStatic m_CompZ;
-	CStatic m_WayX;
-	CStatic m_WayY;
-	CStatic m_WayZ;
+
 };

@@ -28,18 +28,21 @@ CNavigationDlg::CNavigationDlg(CWnd* pParent /*=nullptr*/)
 void CNavigationDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
-	DDX_Control(pDX, IDC_STATIC_ACC_X, m_AccX);
-	DDX_Control(pDX, IDC_STATIC_ACC_Y, m_AccY);
-	DDX_Control(pDX, IDC_STATIC_ACC_Z, m_AccZ);
-	DDX_Control(pDX, IDC_STATIC_SPEED_X, m_SpeedX);
-	DDX_Control(pDX, IDC_STATIC_SPEED_Y, m_SpeedY);
-	DDX_Control(pDX, IDC_STATIC_SPEED_Z, m_SpeedZ);
-	DDX_Control(pDX, IDC_STATIC_COMP_X, m_CompX);
-	DDX_Control(pDX, IDC_STATIC_COMP_Y, m_CompY);
-	DDX_Control(pDX, IDC_STATIC_COMP_Z, m_CompZ);
-	DDX_Control(pDX, IDC_STATIC_WAY_X, m_WayX);
-	DDX_Control(pDX, IDC_STATIC_WAY_Y, m_WayY);
-	DDX_Control(pDX, IDC_STATIC_WAY_Z, m_WayZ);
+	DDX_Control(pDX, IDC_STATIC_ACC_X, m_StaticRawAcc.x);
+	DDX_Control(pDX, IDC_STATIC_ACC_Y, m_StaticRawAcc.y);
+	DDX_Control(pDX, IDC_STATIC_ACC_Z, m_StaticRawAcc.z);
+	DDX_Control(pDX, IDC_STATIC_GFORCE_X, m_StaticAcceleration.x);
+	DDX_Control(pDX, IDC_STATIC_GFORCE_Y, m_StaticAcceleration.y);
+	DDX_Control(pDX, IDC_STATIC_GFORCE_Z, m_StaticAcceleration.z);
+	DDX_Control(pDX, IDC_STATIC_COMP_X, m_StaticComp.x);
+	DDX_Control(pDX, IDC_STATIC_COMP_Y, m_StaticComp.y);
+	DDX_Control(pDX, IDC_STATIC_COMP_Z, m_StaticComp.z);
+	DDX_Control(pDX, IDC_STATIC_SPEED_X, m_StaticSpeed.x);
+	DDX_Control(pDX, IDC_STATIC_SPEED_Y, m_StaticSpeed.y);
+	DDX_Control(pDX, IDC_STATIC_SPEED_Z, m_StaticSpeed.z);
+	DDX_Control(pDX, IDC_STATIC_TRAVEL_X, m_StaticTravel.x);
+	DDX_Control(pDX, IDC_STATIC_TRAVEL_Y, m_StaticTravel.y);
+	DDX_Control(pDX, IDC_STATIC_TRAVEL_Z, m_StaticTravel.z);
 }
 
 BEGIN_MESSAGE_MAP(CNavigationDlg, CDialogEx)
@@ -62,9 +65,9 @@ BOOL CNavigationDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// GroÃŸes Symbol verwenden
 	SetIcon(m_hIcon, FALSE);		// Kleines Symbol verwenden
 
-	m_Init.x = 0;
-	m_Init.y = 0;
-	m_Init.z = 0;
+	m_Offset.x = 0;
+	m_Offset.y = 0;
+	m_Offset.z = 0;
 
 	return TRUE;
 }
@@ -130,12 +133,12 @@ void CNavigationDlg::OnBnClickedButtonRun()
 		m_Acceleration.y = 0;
 		m_Acceleration.z = 0;
 
-		m_Way.x = 0;
-		m_Way.y = 0;
-		m_Way.z = 0;
+		m_Speed.x = 0;
+		m_Speed.y = 0;
+		m_Speed.z = 0;
 
 		//Start multimedia timer with 2ms interval
-		m_idEvent = SetMMTimer(2);
+		m_idEvent = SetMMTimer(1);
 		m_bTimer = true;
 		GetDlgItem(IDC_BUTTON_RUN)->SetWindowTextW(L"Stop");
 	}
@@ -151,13 +154,9 @@ void CNavigationDlg::OnBnClickedButtonRun()
 
 void CNavigationDlg::OnBnClickedButtonReset()
 {
-	m_Acceleration.x = 0;
-	m_Acceleration.y = 0;
-	m_Acceleration.z = 0;
-
-	m_Way.x = 0;
-	m_Way.y = 0;
-	m_Way.z = 0;
+	memset(&m_Acceleration, 0, sizeof(SpeedStruct));
+	memset(&m_Speed, 0, sizeof(SpeedStruct));
+	memset(&m_Travel, 0, sizeof(SpeedStruct));
 }
 
 void CNavigationDlg::OnClose()
@@ -201,17 +200,17 @@ void CNavigationDlg::MMTimerHandler(UINT nIDEvent)
 	CString text;
 	JW56FR1_DATA data = m_Joywarrior.GetData();		//Get data from JW56FR1 as struct
 
-	//Get values for X, Y, Z without joystick offset and offset of the sensor
-	int x = data.accX - JW56FR1_ZERO - m_Init.x;
-	int y = data.accY - JW56FR1_ZERO - m_Init.y;
-	int z = data.accZ - JW56FR1_ZERO - m_Init.z;
+	//Get acceleration values for X, Y, Z without joystick offset and offset of the sensor as RAW data
+	int x = data.accX - JW56FR1_ZERO - m_Offset.x;
+	int y = data.accY - JW56FR1_ZERO - m_Offset.y;
+	int z = data.accZ - JW56FR1_ZERO - m_Offset.z;
 
 	text.Format(L"%d", x);
-	m_AccX.SetWindowTextW(text);
+	m_StaticRawAcc.x.SetWindowTextW(text);
 	text.Format(L"%d", y);
-	m_AccY.SetWindowTextW(text);
+	m_StaticRawAcc.y.SetWindowTextW(text);
 	text.Format(L"%d", z);
-	m_AccZ.SetWindowTextW(text);
+	m_StaticRawAcc.z.SetWindowTextW(text);
 	
 	//Get Acceleration as G-Force and m/s²
 	m_Acceleration.x = (x * JW56FR1_G_MS / JW56FR1_2G);
@@ -223,24 +222,37 @@ void CNavigationDlg::MMTimerHandler(UINT nIDEvent)
 	double gZ = abs((z * JW56FR1_CONVERSION_ACC_2G) / 1000);
 
 	text.Format(L"%0.3f G | %0.2f m/s²", gX, m_Acceleration.x);
-	m_SpeedX.SetWindowTextW(text);
+	m_StaticAcceleration.x.SetWindowTextW(text);
 	text.Format(L"%0.3f G | %0.2f m/s²", gY, m_Acceleration.y);
-	m_SpeedY.SetWindowTextW(text);
+	m_StaticAcceleration.y.SetWindowTextW(text);
 	text.Format(L"%0.3f G | %0.2f m/s²", gZ, m_Acceleration.z);
-	m_SpeedZ.SetWindowTextW(text);
+	m_StaticAcceleration.z.SetWindowTextW(text);
 
-	//Calculate the movement for each axis
-	m_Way.x = m_Way.x + ((data.accX - JW56FR1_ZERO) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
-	m_Way.y = m_Way.y + ((data.accY - JW56FR1_ZERO) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
-	m_Way.z = m_Way.z + (((data.accZ + JW56FR1_2G) - JW56FR1_ZERO) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
+
+	//Calculate the Speed for each axis
+	m_Speed.x = m_Speed.x + ((data.accX - JW56FR1_ZERO) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
+	m_Speed.y = m_Speed.y + ((data.accY - JW56FR1_ZERO) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
+	m_Speed.z = m_Speed.z + (((data.accZ + JW56FR1_2G) - JW56FR1_ZERO) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
 	
-	text.Format(L"%0.2f m", m_Way.x);
-	m_WayX.SetWindowTextW(text);
-	text.Format(L"%0.2f m", m_Way.y);
-	m_WayY.SetWindowTextW(text);
-	text.Format(L"%0.2f m", m_Way.z);
-	m_WayZ.SetWindowTextW(text);
-	
+	text.Format(L"%0.2f m/s", m_Speed.x);
+	m_StaticSpeed.x.SetWindowTextW(text);
+	text.Format(L"%0.2f m/s", m_Speed.y);
+	m_StaticSpeed.y.SetWindowTextW(text);
+	text.Format(L"%0.2f m/s", m_Speed.z);
+	m_StaticSpeed.z.SetWindowTextW(text);
+
+
+	//Calculate travel distance for each axis
+	m_Travel.x = m_Travel.x + (m_Speed.x / JW56FR1_NORMAL_SIZE);
+	m_Travel.y = m_Travel.y + (m_Speed.y / JW56FR1_NORMAL_SIZE);
+	m_Travel.z = m_Travel.z + (m_Speed.z / JW56FR1_NORMAL_SIZE);
+
+	text.Format(L"%0.2f m", m_Travel.x);
+	m_StaticTravel.x.SetWindowTextW(text);
+	text.Format(L"%0.2f m", m_Travel.y);
+	m_StaticTravel.y.SetWindowTextW(text);
+	text.Format(L"%0.2f m", m_Travel.z);
+	m_StaticTravel.z.SetWindowTextW(text);
 }
 
 void CNavigationDlg::OnBnClickedButtonInit()
@@ -248,33 +260,33 @@ void CNavigationDlg::OnBnClickedButtonInit()
 	JW56FR1_DATA data;
 	CString text;
 
-	m_Init.x = 0;
-	m_Init.y = 0;
-	m_Init.z = 0;
+	m_Offset.x = 0;
+	m_Offset.y = 0;
+	m_Offset.z = 0;
 
 	//Get the offset of each axis to get close to ZERO
 	for (int i = 0; i < 255; i++)
 	{
 		data = m_Joywarrior.GetData();
-		m_Init.x = m_Init.x + data.accX;
-		m_Init.y = m_Init.y + data.accY;
-		m_Init.z = m_Init.z + data.accZ;
+		m_Offset.x = m_Offset.x + data.accX;
+		m_Offset.y = m_Offset.y + data.accY;
+		m_Offset.z = m_Offset.z + data.accZ;
 	}
 
 	//Get mid value
-	m_Init.x /= 255;
-	m_Init.y /= 255;
-	m_Init.z /= 255;
+	m_Offset.x /= 255;
+	m_Offset.y /= 255;
+	m_Offset.z /= 255;
 
 	//Clean output
-	m_Init.x = m_Init.x - JW56FR1_ZERO;
-	m_Init.y = m_Init.y - JW56FR1_ZERO;
-	m_Init.z = m_Init.z - JW56FR1_ZERO + JW56FR1_2G;
+	m_Offset.x = m_Offset.x - JW56FR1_ZERO;
+	m_Offset.y = m_Offset.y - JW56FR1_ZERO;
+	m_Offset.z = m_Offset.z - JW56FR1_ZERO + JW56FR1_2G;
 
-	text.Format(L"%d", m_Init.x);
-	m_CompX.SetWindowTextW(text);
-	text.Format(L"%d", m_Init.y);
-	m_CompY.SetWindowTextW(text);
-	text.Format(L"%d", m_Init.z);
-	m_CompZ.SetWindowTextW(text);
+	text.Format(L"%d", m_Offset.x);
+	m_StaticComp.x.SetWindowTextW(text);
+	text.Format(L"%d", m_Offset.y);
+	m_StaticComp.y.SetWindowTextW(text);
+	text.Format(L"%d", m_Offset.z);
+	m_StaticComp.z.SetWindowTextW(text);
 }

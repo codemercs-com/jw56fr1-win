@@ -10,18 +10,20 @@
 #define IDC_STATIC_ACC_X                1003
 #define IDC_STATIC_ACC_Y                1004
 #define IDC_STATIC_ACC_Z                1005
-#define IDC_STATIC_SPEED_X              1006
-#define IDC_STATIC_SPEED_Y              1007
-#define IDC_STATIC_SPEED_Z              1008
+#define IDC_STATIC_GFORCE_X             1006
+#define IDC_STATIC_GFORCE_Y             1007
+#define IDC_STATIC_GFORCE_Z             1008
 #define IDC_BUTTON_INIT                 1009
 #define IDC_STATIC_COMP_X               1010
 #define IDC_STATIC_COMP_Y               1011
 #define IDC_STATIC_COMP_Z               1012
-#define IDC_STATIC_WAY_X                1013
-#define IDC_STATIC_WAY_Y                1014
+#define IDC_STATIC_SPEED_X              1013
+#define IDC_STATIC_SPEED_Y              1014
 #define IDC_STATIC_WAY_Z                1015
-#define IDC_CHECK1                      1016
-#define IDC_CHECK_SPEED                 1016
+#define IDC_STATIC_SPEED_Z              1015
+#define IDC_STATIC_TRAVEL_X             1016
+#define IDC_STATIC_TRAVEL_Y             1017
+#define IDC_STATIC_TRAVEL_Z             1018
 
 // Next default values for new objects
 // 
