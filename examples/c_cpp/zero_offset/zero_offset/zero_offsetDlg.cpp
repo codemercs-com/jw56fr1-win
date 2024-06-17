@@ -153,10 +153,10 @@ void CzerooffsetDlg::MMTimerHandler(UINT nIDEvent)
 	//Get Offset
 	if (m_bOffset == TRUE)
 	{
-		m_OffsetData.accX = (m_OffsetData.accX + data.accX) / 2;
-		m_OffsetData.accY = (m_OffsetData.accY + data.accY) / 2;
-		m_OffsetData.accZ = (m_OffsetData.accZ + data.accZ) / 2;
-
+		m_OffsetCount++;
+		m_OffsetData.accX = m_OffsetData.accX + data.accX;
+		m_OffsetData.accY = m_OffsetData.accY + data.accY;
+		m_OffsetData.accZ = m_OffsetData.accZ + data.accZ;
 
 		if (m_OffsetCount % 10 == 0)
 		{
@@ -164,12 +164,24 @@ void CzerooffsetDlg::MMTimerHandler(UINT nIDEvent)
 		}
 
 		//Take 100 values for get offset
-		if (m_OffsetCount > 100)
+		if (m_OffsetCount >= 100)
 		{
+			m_OffsetData.accX /= m_OffsetCount;
+			m_OffsetData.accY /= m_OffsetCount;
+			m_OffsetData.accZ /= m_OffsetCount;
+
+			text.Format(L"m_OffsetData.accX = %d\n", m_OffsetData.accX);
+			OutputDebugString(text);
+
+			text.Format(L"m_OffsetData.accY = %d\n", m_OffsetData.accY);
+			OutputDebugString(text);
+
+			text.Format(L"m_OffsetData.accZ = %d\n", m_OffsetData.accZ);
+			OutputDebugString(text);
+
 			m_OffsetData.accX = m_OffsetData.accX - JW56FR1_ZERO;
 			m_OffsetData.accY = m_OffsetData.accY - JW56FR1_ZERO;
 			m_OffsetData.accZ = m_OffsetData.accZ - JW56FR1_ZERO + JW56FR1_2G;
-
 
 			m_ListMsg.ResetContent();
 			m_ListMsg.AddString(L"---Offset---");
@@ -182,8 +194,6 @@ void CzerooffsetDlg::MMTimerHandler(UINT nIDEvent)
 
 			m_bOffset = FALSE;
 		}
-
-		m_OffsetCount++;
 	}
 	else
 	{
@@ -223,6 +233,10 @@ void CzerooffsetDlg::OnBnClickedButtonConnect()
 
 void CzerooffsetDlg::OnBnClickedButtonOffset()
 {
+	m_OffsetData.accX = 0;
+	m_OffsetData.accY = 0;
+	m_OffsetData.accZ = 0;
+
 	m_OffsetCount = 0;
 	m_bOffset = TRUE;
 }
