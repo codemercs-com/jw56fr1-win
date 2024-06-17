@@ -222,7 +222,7 @@ void CNavigationDlg::MMTimerHandler(UINT nIDEvent)
 	double gY = abs((y * JW56FR1_CONVERSION_ACC_2G) / 1000);
 	double gZ = abs((z * JW56FR1_CONVERSION_ACC_2G) / 1000);
 
-		text.Format(L"%0.3f G | %0.2f m/s²", gX, m_Acceleration.x);
+	text.Format(L"%0.3f G | %0.2f m/s²", gX, m_Acceleration.x);
 	m_SpeedX.SetWindowTextW(text);
 	text.Format(L"%0.3f G | %0.2f m/s²", gY, m_Acceleration.y);
 	m_SpeedY.SetWindowTextW(text);
@@ -256,11 +256,17 @@ void CNavigationDlg::OnBnClickedButtonInit()
 	for (int i = 0; i < 255; i++)
 	{
 		data = m_Joywarrior.GetData();
-		m_Init.x = (m_Init.x + data.accX) / 2;
-		m_Init.y = (m_Init.y + data.accY) / 2;
-		m_Init.z = (m_Init.z + data.accZ) / 2;
+		m_Init.x = m_Init.x + data.accX;
+		m_Init.y = m_Init.y + data.accY;
+		m_Init.z = m_Init.z + data.accZ;
 	}
 
+	//Get mid value
+	m_Init.x /= 255;
+	m_Init.y /= 255;
+	m_Init.z /= 255;
+
+	//Clean output
 	m_Init.x = m_Init.x - JW56FR1_ZERO;
 	m_Init.y = m_Init.y - JW56FR1_ZERO;
 	m_Init.z = m_Init.z - JW56FR1_ZERO + JW56FR1_2G;
