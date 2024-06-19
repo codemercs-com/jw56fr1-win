@@ -19,19 +19,22 @@
 #define IDC_STATIC_COMP_Z               1012
 #define IDC_STATIC_SPEED_X              1013
 #define IDC_STATIC_SPEED_Y              1014
-#define IDC_STATIC_WAY_Z                1015
 #define IDC_STATIC_SPEED_Z              1015
 #define IDC_STATIC_TRAVEL_X             1016
 #define IDC_STATIC_TRAVEL_Y             1017
 #define IDC_STATIC_TRAVEL_Z             1018
+#define IDC_CMB_ACC_FILTER              1019
+#define IDC_CMB_ACC_BW                  1020
+#define IDC_CMB_ACC_CUT                 1021
+#define IDC_BUTTON_AFILTER              1022
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        130
+#define _APS_NEXT_RESOURCE_VALUE        131
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1017
+#define _APS_NEXT_CONTROL_VALUE         1020
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

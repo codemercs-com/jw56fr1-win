@@ -85,4 +85,10 @@ public:
 	SpeedStruct m_Travel;
 	afx_msg void OnBnClickedButtonInit();
 
+	CComboBox m_ABand;
+	CComboBox m_AFilter;
+	CComboBox m_ACutOff;
+	afx_msg void OnBnClickedButtonAfilter();
+	afx_msg void OnCbnSelchangeCmbAccFilter();
+	void ChangeBwInput(int type);
 };

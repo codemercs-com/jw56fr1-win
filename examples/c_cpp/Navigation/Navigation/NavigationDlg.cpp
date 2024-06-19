@@ -43,6 +43,9 @@ void CNavigationDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_STATIC_TRAVEL_X, m_StaticTravel.x);
 	DDX_Control(pDX, IDC_STATIC_TRAVEL_Y, m_StaticTravel.y);
 	DDX_Control(pDX, IDC_STATIC_TRAVEL_Z, m_StaticTravel.z);
+	DDX_Control(pDX, IDC_CMB_ACC_BW, m_ABand);
+	DDX_Control(pDX, IDC_CMB_ACC_FILTER, m_AFilter);
+	DDX_Control(pDX, IDC_CMB_ACC_CUT, m_ACutOff);
 }
 
 BEGIN_MESSAGE_MAP(CNavigationDlg, CDialogEx)
@@ -53,6 +56,8 @@ BEGIN_MESSAGE_MAP(CNavigationDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_RESET, &CNavigationDlg::OnBnClickedButtonReset)
 	ON_WM_CLOSE()
 	ON_BN_CLICKED(IDC_BUTTON_INIT, &CNavigationDlg::OnBnClickedButtonInit)
+	ON_BN_CLICKED(IDC_BUTTON_AFILTER, &CNavigationDlg::OnBnClickedButtonAfilter)
+	ON_CBN_SELCHANGE(IDC_CMB_ACC_FILTER, &CNavigationDlg::OnCbnSelchangeCmbAccFilter)
 END_MESSAGE_MAP()
 
 
@@ -68,6 +73,10 @@ BOOL CNavigationDlg::OnInitDialog()
 	m_Offset.x = 0;
 	m_Offset.y = 0;
 	m_Offset.z = 0;
+
+	m_AFilter.SetCurSel(0);
+	m_ABand.SetCurSel(0);
+	m_ACutOff.SetCurSel(0);
 
 	return TRUE;
 }
@@ -117,13 +126,89 @@ void CNavigationDlg::OnBnClickedButtonConnect()
 	{
 		//Set up the JoyWarrior56FR1
 		m_Joywarrior.SetMode(JW56FR1_MODE_NORMAL);
-		m_Joywarrior.SetParameter(JW56FR1_ARNG_RANGE_2G, JW56FR1_AFILT_NONE, JW56FR1_GRNG_245DPS, JW56FR1_GFILT_NONE);
+		m_Joywarrior.SetParameter(JW56FR1_ARNG_RANGE_2G, JW56FR1_AFILT_NONE, JW56FR1_GRNG_245DPS, JW56FR1_GFILT_NONE); //Set JW56FR1 to fefault
 
 		GetDlgItem(IDC_BUTTON_INIT)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_RUN)->EnableWindow(TRUE);
+		GetDlgItem(IDC_BUTTON_AFILTER)->EnableWindow(TRUE);
 	}
 }
 
+void CNavigationDlg::OnCbnSelchangeCmbAccFilter()
+{
+	switch (m_AFilter.GetCurSel())
+	{
+	case 0:
+		GetDlgItem(IDC_CMB_ACC_CUT)->EnableWindow(FALSE);
+		break;
+
+	case 1:
+		GetDlgItem(IDC_CMB_ACC_CUT)->EnableWindow(TRUE);
+		ChangeBwInput(1);
+		m_ACutOff.SetCurSel(0);
+		break;
+
+	case 2:
+		GetDlgItem(IDC_CMB_ACC_CUT)->EnableWindow(TRUE);
+		ChangeBwInput(0);
+		m_ACutOff.SetCurSel(0);
+		break;
+	}
+}
+
+void CNavigationDlg::ChangeBwInput(int type)
+{
+	m_ACutOff.ResetContent();
+
+	if (type == 0)
+	{
+		m_ACutOff.AddString(L"16.66 Hz");
+		m_ACutOff.AddString(L"8.33 Hz");
+		m_ACutOff.AddString(L"92.56 Hz");
+		m_ACutOff.AddString(L"2.08 Hz");
+	}
+	else
+	{
+		m_ACutOff.AddString(L"208.25 Hz");
+		m_ACutOff.AddString(L"8.33 Hz");
+		m_ACutOff.AddString(L"92.56 Hz");
+		m_ACutOff.AddString(L"2.08 Hz");
+	}
+}
+
+
+void CNavigationDlg::OnBnClickedButtonAfilter()
+{
+	BYTE a_filt = 0x00;
+
+	switch (m_ABand.GetCurSel())
+	{
+	case 0: a_filt |= JW56FR1_AFILT_BAND_0; break;
+	case 1: a_filt |= JW56FR1_AFILT_BAND_1; break;
+	}
+
+	switch (m_AFilter.GetCurSel())
+	{
+	case 0:	a_filt |= JW56FR1_AFILT_LP1_ONLY; break;
+	case 1:	a_filt |= JW56FR1_AFILT_LP1_HP; break;
+	case 2:	a_filt |= JW56FR1_AFILT_LP1_LP2; break;
+	}
+
+	if (m_AFilter.GetCurSel() > 0)
+	{
+		switch (m_ACutOff.GetCurSel())
+		{
+		case 0: a_filt |= 0x00; break;
+		case 1: a_filt |= 0x01; break;
+		case 2: a_filt |= 0x02; break;
+		case 3: a_filt |= 0x03; break;
+		}
+	}
+	else
+		a_filt |= 0x00;
+
+	m_Joywarrior.SetParameter(JW56FR1_ARNG_RANGE_2G, a_filt, JW56FR1_GRNG_245DPS, JW56FR1_GFILT_NONE);
+}
 
 void CNavigationDlg::OnBnClickedButtonRun()
 {
@@ -290,3 +375,8 @@ void CNavigationDlg::OnBnClickedButtonInit()
 	text.Format(L"%d", m_Offset.z);
 	m_StaticComp.z.SetWindowTextW(text);
 }
+
+
+
+
+
