@@ -4,8 +4,10 @@
 
 #pragma once
 #include "CJoyWarrior56FR1.h"
+#include "CFilter.h"
 
 #define PI 3.14159265
+#define FILTER_LEN 25
 
 // CinclinometerDlg-Dialogfeld
 class CinclinometerDlg : public CDialogEx
@@ -47,6 +49,13 @@ public:
 		int accZ;
 	}OffsetData;
 
+	typedef struct FilterData
+	{
+		int accX;
+		int accY;
+		int accZ;
+	}FilterData;
+
 	CJoyWarrior56FR1 m_Joywarrior;
 	OffsetData m_OffsetData;
 	bool m_bTimer;
@@ -60,4 +69,24 @@ public:
 	CStatic m_StaticRoll;
 	CStatic m_StaticPitch;
 	CStatic m_StaticYaw;
+
+	typedef struct TheadStruct
+	{
+		bool run;
+		int status;
+		bool execute;
+	}TheadStruct;
+
+	TheadStruct m_ThreadData;
+	static UINT Thread_Data(LPVOID pParam);
+
+	CFilter m_FilterX;
+	CFilter m_FilterY;
+	CFilter m_FilterZ;
+
+	CSliderCtrl m_SliderAlpha;
+	afx_msg void OnBnClickedButtonFilterSet();
+	afx_msg void OnNMCustomdrawSliderAlpha(NMHDR* pNMHDR, LRESULT* pResult);
+	CStatic m_StaticAlpha;
+	afx_msg void OnClose();
 };

@@ -36,6 +36,9 @@
     <ClInclude Include="CJoyWarrior56FR1.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="CFilter.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="inclinometer.cpp">
@@ -48,6 +51,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="CJoyWarrior56FR1.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="CFilter.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

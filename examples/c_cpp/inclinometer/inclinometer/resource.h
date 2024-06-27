@@ -13,6 +13,10 @@
 #define IDC_STATIC_ROLL                 1005
 #define IDC_STATIC_PITCH                1006
 #define IDC_STATIC_YAW                  1007
+#define IDC_SLIDER_ALPHA                1008
+#define IDC_BUTTON_FILTER_SET           1009
+#define IDC_STATIC_LP                   1010
+#define IDC_STATIC_ALPHA                1010
 
 // Next default values for new objects
 // 
@@ -20,7 +24,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        130
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1008
+#define _APS_NEXT_CONTROL_VALUE         1010
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif

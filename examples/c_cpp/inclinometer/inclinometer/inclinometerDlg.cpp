@@ -1,4 +1,4 @@
-
+ï»¿
 // inclinometerDlg.cpp: Implementierungsdatei
 //
 
@@ -7,10 +7,14 @@
 #include "inclinometer.h"
 #include "inclinometerDlg.h"
 #include "afxdialogex.h"
+#include <mmsystem.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+
+#define THREAD_START 1
+#define THREAD_STOP 0
 
 
 CinclinometerDlg::CinclinometerDlg(CWnd* pParent /*=nullptr*/)
@@ -28,6 +32,8 @@ void CinclinometerDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_STATIC_ROLL, m_StaticRoll);
 	DDX_Control(pDX, IDC_STATIC_PITCH, m_StaticPitch);
 	DDX_Control(pDX, IDC_STATIC_YAW, m_StaticYaw);
+	DDX_Control(pDX, IDC_SLIDER_ALPHA, m_SliderAlpha);
+	DDX_Control(pDX, IDC_STATIC_ALPHA, m_StaticAlpha);
 }
 
 BEGIN_MESSAGE_MAP(CinclinometerDlg, CDialogEx)
@@ -36,6 +42,9 @@ BEGIN_MESSAGE_MAP(CinclinometerDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_START, &CinclinometerDlg::OnBnClickedButtonStart)
 	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_BUTTON_CONNECT, &CinclinometerDlg::OnBnClickedButtonConnect)
+	ON_BN_CLICKED(IDC_BUTTON_FILTER_SET, &CinclinometerDlg::OnBnClickedButtonFilterSet)
+	ON_NOTIFY(NM_CUSTOMDRAW, IDC_SLIDER_ALPHA, &CinclinometerDlg::OnNMCustomdrawSliderAlpha)
+	ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
 
@@ -48,8 +57,14 @@ BOOL CinclinometerDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);
 	SetIcon(m_hIcon, FALSE);
 
+	m_SliderAlpha.SetRange(1, 100);
+	m_SliderAlpha.SetPos(100);
+	m_StaticAlpha.SetWindowTextW(L"0.01");
 
 	m_bTimer = 0;
+	m_ThreadData.run = false;
+	m_ThreadData.execute = false;
+	m_ThreadData.status = THREAD_START;
 
 	return TRUE;
 }
@@ -138,8 +153,6 @@ double CinclinometerDlg::GetRoll(int x, int y, int z)
 	return erg * 180 / PI;
 }
 
-
-
 void CinclinometerDlg::OnBnClickedButtonStart()
 {
 	CString text;
@@ -148,12 +161,14 @@ void CinclinometerDlg::OnBnClickedButtonStart()
 	{
 		//Get offset	
 		JW56FR1_DATA data;
+		FilterData temp = { 0,0,0 };
 
 		//Clear offset
 		m_OffsetData.accX = 0;
 		m_OffsetData.accY = 0;
 		m_OffsetData.accZ = 0;
 
+		//Get the offset
 		for (int i = 0; i < 255; i++)
 		{
 			data = m_Joywarrior.GetData();
@@ -170,8 +185,32 @@ void CinclinometerDlg::OnBnClickedButtonStart()
 		m_OffsetData.accY = m_OffsetData.accY - JW56FR1_ZERO;
 		m_OffsetData.accZ = m_OffsetData.accZ - JW56FR1_ZERO + JW56FR1_2G;
 
+		//Clear filter Data
+		m_FilterX.Clear();
+		m_FilterY.Clear();
+		m_FilterZ.Clear();
+
+		//Set ALPHA for down-pass (0.01 to 0.1), 1.0 -> no filter
+		m_FilterX.SetAlpha(1.0);
+		m_FilterY.SetAlpha(1.0);
+		m_FilterZ.SetAlpha(1.0);
+
+		//Start thread for getting data
+		if (m_ThreadData.run == false)
+		{
+			CWinThread* pThreadData = AfxBeginThread(Thread_Data, (LPVOID)this, THREAD_PRIORITY_NORMAL, (UINT)0, (DWORD)0, (LPSECURITY_ATTRIBUTES)NULL);
+
+			if (!pThreadData)
+				OutputDebugString(L"AfxBeginThread() Failed!");
+			else
+			{
+				m_ThreadData.status = THREAD_START;
+				m_ThreadData.run = true;
+			}
+		}
+
 		//Start timer
-		SetTimer(IDC_LOOPTIME, 100, FALSE);
+		SetTimer(IDC_LOOPTIME, 100, FALSE); //As fast as possible
 		GetDlgItem(IDC_BUTTON_START)->SetWindowTextW(L"Stop");
 		m_bTimer = true;
 	}
@@ -180,6 +219,8 @@ void CinclinometerDlg::OnBnClickedButtonStart()
 		KillTimer(IDC_LOOPTIME);
 		GetDlgItem(IDC_BUTTON_START)->SetWindowTextW(L"Start");
 		m_bTimer = false;
+		m_ThreadData.status = THREAD_STOP;
+		m_ThreadData.run = false;
 	}
 }
 
@@ -188,13 +229,24 @@ void CinclinometerDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	CString text;
 	JW56FR1_DATA data;
-	data = m_Joywarrior.GetData();
 	int x, y, z = 0;
 
-	x = data.accX - JW56FR1_ZERO - m_OffsetData.accX;
-	y = data.accY - JW56FR1_ZERO - m_OffsetData.accY;
-	z = data.accZ - JW56FR1_ZERO - m_OffsetData.accZ;
+	//Check for Thread for new data (thread paused)
+	m_ThreadData.execute = false;
 
+	//Use filter
+	x = m_FilterX.Execute();
+	y = m_FilterY.Execute();
+	z = m_FilterZ.Execute();
+
+	m_FilterX.Clear();
+	m_FilterY.Clear();
+	m_FilterZ.Clear();
+
+	//Restart thread
+	m_ThreadData.execute = true;
+
+	//Output
 	text.Format(L"%d", x);
 	m_StaticX.SetWindowTextW(text);
 
@@ -211,17 +263,93 @@ void CinclinometerDlg::OnTimer(UINT_PTR nIDEvent)
 	//pitch = GetPitch(x, y, z);
 	//roll = GetRoll(x, y, z);
 
-	yaw = 180 - ((Winkel_Z(x, y, z) * 180 / PI) - 90)* (-1);
+	yaw = 180 - ((Winkel_Z(x, y, z) * 180 / PI) - 90) * (-1);
 
-
-	text.Format(L"%0.1f °", pitch);
+	text.Format(L"%0.1f Â°", pitch);
 	m_StaticPitch.SetWindowTextW(text);
 
-	text.Format(L"%0.1f °", roll);
+	text.Format(L"%0.1f Â°", roll);
 	m_StaticRoll.SetWindowTextW(text);
 
-	text.Format(L"%0.1f °", yaw);
+	text.Format(L"%0.1f Â°", yaw);
 	m_StaticYaw.SetWindowTextW(text);
 
 	CDialogEx::OnTimer(nIDEvent);
+}
+
+
+UINT CinclinometerDlg::Thread_Data(LPVOID pParam)
+{
+	CinclinometerDlg* pObject = (CinclinometerDlg*)pParam;
+
+	if (pObject == NULL)
+		return 1;
+
+	timeBeginPeriod(1); //Set to fastest timer possible
+	JW56FR1_DATA data;
+
+	//Get some data to clear
+	for (int i = 0; i < 100; i++)
+		pObject->m_Joywarrior.GetData();
+
+	//Read jw56fr1 as fast as possible
+	for (;;)
+	{
+		//Close thread external
+		if (pObject->m_ThreadData.status == THREAD_STOP)
+			break;
+
+		data = pObject->m_Joywarrior.GetData();
+
+		if (pObject->m_ThreadData.execute == false)
+			continue;
+		else
+		{
+			pObject->m_FilterX.Add(data.accX - JW56FR1_ZERO - pObject->m_OffsetData.accX);
+			pObject->m_FilterY.Add(data.accY - JW56FR1_ZERO - pObject->m_OffsetData.accY);
+			pObject->m_FilterZ.Add(data.accZ - JW56FR1_ZERO - pObject->m_OffsetData.accZ);
+		}
+	}
+
+	pObject->m_ThreadData.run = false;
+
+	return 0;
+}
+
+void CinclinometerDlg::OnBnClickedButtonFilterSet()
+{
+	double alpha = m_SliderAlpha.GetPos() / 100.0;
+
+	/*
+	* Alpha = 1.0 : No Filter
+	* Less alpha, more filtering
+	*/
+
+	m_FilterX.SetAlpha(alpha);
+	m_FilterY.SetAlpha(alpha);
+	m_FilterZ.SetAlpha(alpha);
+}
+
+
+void CinclinometerDlg::OnNMCustomdrawSliderAlpha(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	LPNMCUSTOMDRAW pNMCD = reinterpret_cast<LPNMCUSTOMDRAW>(pNMHDR);
+
+	CString text;
+	int value = m_SliderAlpha.GetPos();
+	double alpha = value / 100.0;
+	text.Format(L"%0.2f", alpha);
+
+	m_StaticAlpha.SetWindowTextW(text);
+	*pResult = 0;
+}
+
+
+void CinclinometerDlg::OnClose()
+{
+	m_ThreadData.status = THREAD_STOP; //Stop Thread
+	KillTimer(IDC_LOOPTIME); //Stop Timer
+	m_Joywarrior.Close();
+
+	CDialogEx::OnClose();
 }

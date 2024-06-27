@@ -183,6 +183,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CFilter.h" />
     <ClInclude Include="CJoyWarrior56FR1.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="inclinometer.h" />
@@ -192,6 +193,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CFilter.cpp" />
     <ClCompile Include="CJoyWarrior56FR1.cpp" />
     <ClCompile Include="inclinometer.cpp" />
     <ClCompile Include="inclinometerDlg.cpp" />
