@@ -14,6 +14,9 @@
 #define new DEBUG_NEW
 #endif
 
+#define THREAD_START 1
+#define THREAD_STOP 0
+
 
 // CNavigationDlg-Dialogfeld
 
@@ -46,6 +49,7 @@ void CNavigationDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CMB_ACC_BW, m_ABand);
 	DDX_Control(pDX, IDC_CMB_ACC_FILTER, m_AFilter);
 	DDX_Control(pDX, IDC_CMB_ACC_CUT, m_ACutOff);
+	DDX_Control(pDX, IDC_LIST, m_List);
 }
 
 BEGIN_MESSAGE_MAP(CNavigationDlg, CDialogEx)
@@ -77,6 +81,9 @@ BOOL CNavigationDlg::OnInitDialog()
 	m_AFilter.SetCurSel(0);
 	m_ABand.SetCurSel(0);
 	m_ACutOff.SetCurSel(0);
+
+	m_ThreadData.run = false;
+	m_ThreadData.status = THREAD_START;
 
 	return TRUE;
 }
@@ -176,7 +183,6 @@ void CNavigationDlg::ChangeBwInput(int type)
 	}
 }
 
-
 void CNavigationDlg::OnBnClickedButtonAfilter()
 {
 	BYTE a_filt = 0x00;
@@ -222,17 +228,32 @@ void CNavigationDlg::OnBnClickedButtonRun()
 		m_Speed.y = 0;
 		m_Speed.z = 0;
 
-		//Start multimedia timer with 2ms interval
-		m_idEvent = SetMMTimer(1);
+		//Start multimedia timer with 100ms interval for update dialog with thread data
+		m_idEvent = SetMMTimer(100);
 		m_bTimer = true;
 		GetDlgItem(IDC_BUTTON_RUN)->SetWindowTextW(L"Stop");
+
+		if (m_ThreadData.run == false)
+		{
+			CWinThread* pThreadData = AfxBeginThread(Thread_Data, (LPVOID)this, THREAD_PRIORITY_NORMAL, (UINT)0, (DWORD)0, (LPSECURITY_ATTRIBUTES)NULL);
+
+			if (!pThreadData)
+				OutputDebugString(L"AfxBeginThread() Failed!");
+			else
+			{
+				m_ThreadData.status = THREAD_START;
+				m_ThreadData.run = true;
+			}
+		}
 	}
 	else
 	{
-		//Stop multimedia timer
+		//Stop multimedia timer and clear
 		KillMMTimer(m_idEvent);
 		m_bTimer = false;
 		m_idEvent = 0;
+		m_ThreadData.status = THREAD_STOP;
+		m_ThreadData.run = false;
 		GetDlgItem(IDC_BUTTON_RUN)->SetWindowTextW(L"Start");
 	}
 }
@@ -281,43 +302,21 @@ void CNavigationDlg::KillMMTimer(UINT nIDEvent)
 void CNavigationDlg::MMTimerHandler(UINT nIDEvent)
 {
 	PumpMsgQueue();
-
 	CString text;
-	JW56FR1_DATA data = m_Joywarrior.GetData();		//Get data from JW56FR1 as struct
 
-	//Get acceleration values for X, Y, Z without joystick offset and offset of the sensor as RAW data
-	int x = data.accX - JW56FR1_ZERO - m_Offset.x;
-	int y = data.accY - JW56FR1_ZERO - m_Offset.y;
-	int z = data.accZ - JW56FR1_ZERO - m_Offset.z;
-
-	text.Format(L"%d", x);
+	text.Format(L"%d", m_AccData.x);
 	m_StaticRawAcc.x.SetWindowTextW(text);
-	text.Format(L"%d", y);
+	text.Format(L"%d", m_AccData.y);
 	m_StaticRawAcc.y.SetWindowTextW(text);
-	text.Format(L"%d", z);
+	text.Format(L"%d", m_AccData.z);
 	m_StaticRawAcc.z.SetWindowTextW(text);
 	
-	//Get Acceleration as G-Force and m/s²
-	m_Acceleration.x = (x * JW56FR1_G_MS / JW56FR1_2G);
-	m_Acceleration.y = (y * JW56FR1_G_MS / JW56FR1_2G);
-	m_Acceleration.z = (z * JW56FR1_G_MS / JW56FR1_2G);
-
-	double gX = abs((x * JW56FR1_CONVERSION_ACC_2G) / 1000);
-	double gY = abs((y * JW56FR1_CONVERSION_ACC_2G) / 1000);
-	double gZ = abs((z * JW56FR1_CONVERSION_ACC_2G) / 1000);
-
-	text.Format(L"%0.3f G | %0.2f m/s²", gX, m_Acceleration.x);
+	text.Format(L"%0.3f G | %0.2f m/s²", m_SpeedData.x, m_Acceleration.x);
 	m_StaticAcceleration.x.SetWindowTextW(text);
-	text.Format(L"%0.3f G | %0.2f m/s²", gY, m_Acceleration.y);
+	text.Format(L"%0.3f G | %0.2f m/s²", m_SpeedData.y, m_Acceleration.y);
 	m_StaticAcceleration.y.SetWindowTextW(text);
-	text.Format(L"%0.3f G | %0.2f m/s²", gZ, m_Acceleration.z);
+	text.Format(L"%0.3f G | %0.2f m/s²", m_SpeedData.z, m_Acceleration.z);
 	m_StaticAcceleration.z.SetWindowTextW(text);
-
-
-	//Calculate the Speed for each axis
-	m_Speed.x = m_Speed.x + ((data.accX - JW56FR1_ZERO) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
-	m_Speed.y = m_Speed.y + ((data.accY - JW56FR1_ZERO) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
-	m_Speed.z = m_Speed.z + (((data.accZ + JW56FR1_2G) - JW56FR1_ZERO) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
 	
 	text.Format(L"%0.2f m/s", m_Speed.x);
 	m_StaticSpeed.x.SetWindowTextW(text);
@@ -325,12 +324,6 @@ void CNavigationDlg::MMTimerHandler(UINT nIDEvent)
 	m_StaticSpeed.y.SetWindowTextW(text);
 	text.Format(L"%0.2f m/s", m_Speed.z);
 	m_StaticSpeed.z.SetWindowTextW(text);
-
-
-	//Calculate travel distance for each axis
-	m_Travel.x = m_Travel.x + (m_Speed.x / JW56FR1_NORMAL_SIZE);
-	m_Travel.y = m_Travel.y + (m_Speed.y / JW56FR1_NORMAL_SIZE);
-	m_Travel.z = m_Travel.z + (m_Speed.z / JW56FR1_NORMAL_SIZE);
 
 	text.Format(L"%0.2f m", m_Travel.x);
 	m_StaticTravel.x.SetWindowTextW(text);
@@ -377,6 +370,53 @@ void CNavigationDlg::OnBnClickedButtonInit()
 }
 
 
+UINT CNavigationDlg::Thread_Data(LPVOID pParam)
+{
+	CNavigationDlg* pObject = (CNavigationDlg*)pParam;
 
+	if (pObject == NULL)
+		return 1;
 
+	timeBeginPeriod(1); //Get the fastest timing
 
+	JW56FR1_DATA data;
+
+	//Get some data and dump them
+	for(int i=0; i<100; i++)
+		pObject->m_Joywarrior.GetData();
+
+	for (;;)
+	{
+		//Exit Thread from extern event
+		if (pObject->m_ThreadData.status == THREAD_STOP)
+			break;
+
+		data = pObject->m_Joywarrior.GetData();
+
+		//Get acceleration values for X, Y, Z without joystick offset and offset of the sensor as RAW data
+		pObject->m_AccData.x = data.accX - JW56FR1_ZERO - pObject->m_Offset.x;
+		pObject->m_AccData.y = data.accY - JW56FR1_ZERO - pObject->m_Offset.y;
+		pObject->m_AccData.z = data.accZ - JW56FR1_ZERO - pObject->m_Offset.z;
+
+		//Get Acceleration as G-Force and m/s²
+		pObject->m_Acceleration.x = (pObject->m_AccData.x * JW56FR1_G_MS / JW56FR1_2G);
+		pObject->m_Acceleration.y = (pObject->m_AccData.y * JW56FR1_G_MS / JW56FR1_2G);
+		pObject->m_Acceleration.z = (pObject->m_AccData.z * JW56FR1_G_MS / JW56FR1_2G);
+
+		pObject->m_SpeedData.x = abs((pObject->m_AccData.x * JW56FR1_CONVERSION_ACC_2G) / 1000);
+		pObject->m_SpeedData.y = abs((pObject->m_AccData.y * JW56FR1_CONVERSION_ACC_2G) / 1000);
+		pObject->m_SpeedData.z = abs((pObject->m_AccData.z * JW56FR1_CONVERSION_ACC_2G) / 1000);
+
+		pObject->m_Speed.x = pObject->m_Speed.x + ((data.accX - JW56FR1_ZERO - pObject->m_Offset.x) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
+		pObject->m_Speed.y = pObject->m_Speed.y + ((data.accY - JW56FR1_ZERO - pObject->m_Offset.y) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
+		pObject->m_Speed.z = pObject->m_Speed.z + (((data.accZ + JW56FR1_2G) - JW56FR1_ZERO - pObject->m_Offset.z) * JW56FR1_G_MS / JW56FR1_NORMAL_SIZE / JW56FR1_2G);
+
+		pObject->m_Travel.x = pObject->m_Travel.x + (pObject->m_Speed.x / JW56FR1_NORMAL_SIZE);
+		pObject->m_Travel.y = pObject->m_Travel.y + (pObject->m_Speed.y / JW56FR1_NORMAL_SIZE);
+		pObject->m_Travel.z = pObject->m_Travel.z + (pObject->m_Speed.z / JW56FR1_NORMAL_SIZE);
+	}
+
+	pObject->m_ThreadData.run = 0;
+
+	return 0;
+}
